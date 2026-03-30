@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pydantic[email]
+pydantic-settings
+sqlalchemy[ext]
+asyncpg
+alembic
+python-multipart
+python-dotenv
+pytest
+httpx
