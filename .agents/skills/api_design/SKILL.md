@@ -4,64 +4,49 @@ description: Standard for Designing and Implementing Enterprise-grade APIs in Fa
 ---
 
 # Skill: API Design
-**Domain**: Routing, Request/Response handling, Middlewares, Versioning.
-**When to Use**: When adding a new endpoint, changing data input/output logic, or handling cross-cutting concerns.
+**Domain**: FastAPI, Pydantic V2, REST, OpenAPI.
+**When to Use**: When creating new endpoints, routers, or request/response schemas.
 
 ## Key Rules
-- **DO**: Always use `/api/v[N]/...` for routing.
-- **DO**: Always use `Standard Success/Error Schema` for responses.
-- **DO**: Always separate Router logic (Controller) from Business Logic (Service).
-- **DON'T**: Never write SQL queries directly in the router.
-- **DON'T**: Never return SQLAlchemy models directly to the client.
+- **DO**: Always use **Pydantic V2** (`ConfigDict`, `field_validator`).
+- **DO**: Use `from app.api import deps` for dependency injection.
+- **DO**: Implement **RFC 6750** compliance for unauthorized access (401 + WWW-Authenticate).
+- **DON'T**: Never use Pydantic V1 `@validator` or `class Config`.
+- **DON'T**: Avoid returning raw models; always use `response_model` or `schemas.response.ResponseSuccess`.
 
 ## Code Examples
 
-### ✅ Correct Pattern (Standard Success Response)
+### ✅ Correct Pattern (Pydantic V2 Schema)
 ```python
-@router.get("/", response_model=ResponseSuccess[List[User]])
-async def read_users(db: AsyncSession = Depends(get_db)):
-    users = await user_service.get_users(db)
-    return ResponseSuccess(data=users)
+from pydantic import BaseModel, ConfigDict, field_validator
+
+class MySchema(BaseModel):
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def validate_name(cls, v):
+        if not v:
+            raise ValueError("Name cannot be empty")
+        return v
 ```
 
-### ❌ Anti-pattern (Returning Model directly)
+### ✅ Correct Pattern (Router registration)
 ```python
-@router.get("/")
-def get_users(db: Session = Depends(get_db)):
-    # Error: No response_model, returning legacy SQLAlchemy object directly
-    return db.query(UserModel).all() 
+from app.api.v1.endpoints import my_feature
+api_router.include_router(my_feature.router, prefix="/feature", tags=["feature"])
 ```
 
 ## AI Agent Instructions
 
 ### Generate
-When a user requests a new API:
-1. Create Router in `api/v1/endpoints/`.
-2. Define Request/Response Schemas.
-3. Register Router in `api/v1/api.py`.
+1.  Check for `PROJECT_KNOWLEDGE.md` to identify the current stack.
+2.  Ensure Pydantic models use V2 syntax.
+3.  Register any new router in `app/api/v1/api.py`.
 
 ### Review
-- Check if `response_model` is present?
-- Check if SQL is being handled directly?
-- Check if the endpoint is in the correct version (`/v1`)?
-
-### Detect
-- Detect `async def` without `await` → Flag: "Potential Event Loop blocking".
-- Detect `HTTPException` directly in a Repository → Flag: "Violation of Layering".
-
-### Suggest
-- Suggest creating a `CommonQueryParams` dependency for repeated query parameters.
-
-## Common Bugs
-- **Bug**: Forgot to import the router into `api_router`.
-  - **Fix**: Check `app/api/v1/api.py`.
-- **Bug**: `Validation Error` (Pydantic) mismatch with frontend.
-  - **Fix**: Re-check Schema field types (e.g., `int` vs `string`).
-
-## Performance Notes
-- Use `APIRouter` with `tags` for better Swagger UI organization.
-- Use `skip` and `limit` (Pagination) for large lists.
-
-## Related Skills
-- `db_persistence`: Provides data to the Router.
-- `logic_service`: The layer the Router delegates work to.
+- Are we using Pydantic V2?
+- Is the error code for auth failure 401 (not 403)?
+- Are schemas correctly exported in `app/schemas/__init__.py`?

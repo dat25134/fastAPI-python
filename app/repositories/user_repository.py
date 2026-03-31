@@ -12,10 +12,10 @@ class UserRepository:
         result = await db.execute(select(User).filter(User.email == email))
         return result.scalars().first()
 
-    async def create(self, db: AsyncSession, *, obj_in: UserCreate) -> User:
+    async def create(self, db: AsyncSession, *, obj_in: UserCreate, hashed_password: str) -> User:
         db_obj = User(
             email=obj_in.email,
-            hashed_password=obj_in.password, # In real app, hash this!
+            hashed_password=hashed_password,
             full_name=obj_in.full_name,
             is_superuser=obj_in.is_superuser,
         )

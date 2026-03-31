@@ -28,11 +28,33 @@ async def login_access_token(
         raise HTTPException(status_code=400, detail="Inactive user")
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    refresh_token_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+    
     return {
         "access_token": security.create_access_token(
             user.id, expires_delta=access_token_expires
         ),
+        "refresh_token": security.create_access_token(
+            user.id, expires_delta=refresh_token_expires
+        ),
         "token_type": "bearer",
+        "expires_in": int(access_token_expires.total_seconds()),
+    }
+
+@router.post("/login/refresh-token", response_model=schemas.token.Token)
+async def refresh_token(
+    current_user: models.user.User = Depends(deps.get_current_active_user)
+) -> Any:
+    """
+    Refresh access token
+    """
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    return {
+        "access_token": security.create_access_token(
+            current_user.id, expires_delta=access_token_expires
+        ),
+        "token_type": "bearer",
+        "expires_in": int(access_token_expires.total_seconds()),
     }
 
 @router.post("/login/test-token", response_model=schemas.user.User)

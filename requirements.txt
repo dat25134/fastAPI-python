@@ -10,4 +10,7 @@ python-dotenv
 pytest
 httpx
 passlib[bcrypt]
+bcrypt==3.2.0
 python-jose[cryptography]
+aiosqlite
+pytest-asyncio

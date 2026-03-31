@@ -4,6 +4,9 @@ from pydantic import BaseModel
 class Token(BaseModel):
     access_token: str
     token_type: str
+    refresh_token: Optional[str] = None
+    expires_in: Optional[int] = None
 
 class TokenPayload(BaseModel):
     sub: Optional[str] = None
+    exp: Optional[int] = None

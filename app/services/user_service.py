@@ -20,17 +20,11 @@ class UserService:
                 detail="The user with this username already exists in the system.",
             )
         
-        # Hashing password before saving
-        db_obj = User(
-            email=user_in.email,
-            hashed_password=get_password_hash(user_in.password),
-            full_name=user_in.full_name,
-            is_superuser=user_in.is_superuser,
+        # Hashing password and delegating to repository
+        hashed_password = get_password_hash(user_in.password)
+        return await user_repository.create(
+            db, obj_in=user_in, hashed_password=hashed_password
         )
-        db.add(db_obj)
-        await db.commit()
-        await db.refresh(db_obj)
-        return db_obj
 
     async def authenticate(self, db: AsyncSession, email: str, password: str) -> Optional[User]:
         user = await user_repository.get_by_email(db, email=email)
