@@ -5,14 +5,14 @@ description: Standard for Mastering Asynchronous Performance and Caching in Fast
 
 # Skill: Async & Performance
 **Domain**: Event Loop, Redis, Background Tasks, Connection Pooling.
-**When to Use**: Khi hệ thống bị chậm (Latency cao), cần xử lý nhiều connection đồng thời, hoặc tối ưu hóa tốc độ phản hồi.
+**When to Use**: When the system is slow (high latency), needs to handle many simultaneous connections, or optimize response speed.
 
 ## Key Rules
-- **DO**: Luôn sử dụng `async def` cho các I/O task (API, DB, Redis).
-- **DO**: Luôn sử dụng `run_in_executor` cho các CPU-bound task (như hashing, xử lý ảnh).
-- **DO**: Luôn thiết lập TTL (TTL) cho mọi key trong Redis.
-- **DON'T**: Không bao giờ sử dụng các thư viện đồng bộ (Sync) bên trong hàm `async def` (như `requests`, `time.sleep`).
-- **DON'T**: Không bao giờ commit transaction mà không có `await` (`db.commit()` thay vì `await db.commit()`).
+- **DO**: Always use `async def` for I/O tasks (API, DB, Redis).
+- **DO**: Always use `run_in_executor` for CPU-bound tasks (e.g., hashing, image processing).
+- **DO**: Always set TTL for every key in Redis.
+- **DON'T**: Never use synchronous (Sync) libraries within an `async def` function (e.g., `requests`, `time.sleep`).
+- **DON'T**: Never commit a transaction without `await` (`db.commit()` instead of `await db.commit()`).
 
 ## Code Examples
 
@@ -22,7 +22,7 @@ import httpx
 
 async def call_external_api(url: str):
     async with httpx.AsyncClient() as client:
-        # Lợi: Không làm treo hệ thống khi chờ kết quả phản hồi
+        # Advantage: Does not block the system while waiting for the result
         return await client.get(url) 
 ```
 
@@ -31,39 +31,39 @@ async def call_external_api(url: str):
 import requests
 
 def call_external_api(url: str):
-    # Lỗi: Giết chết hiệu năng của toàn bộ FastAPI app
+    # Error: Kills the performance of the entire FastAPI app
     return requests.get(url) 
 ```
 
 ## AI Agent Instructions
 
 ### Generate
-Khi user yêu cầu tối ưu hóa:
-1. Phân tích các hàm `sync` đang gọi I/O.
-2. Chuyển sang `async` (ví dụ: `requests` -> `httpx`).
-3. Cấu hình Redis Cache-Aside pattern.
+When a user requests optimization:
+1. Analyze `sync` functions calling I/O.
+2. Switch to `async` (e.g., `requests` -> `httpx`).
+3. Configure Redis Cache-Aside pattern.
 
 ### Review
-- Check xem có đang dùng `time.sleep` lồng trong `async def` không?
-- Check xem `await` đã được gọi cho mọi IO operation chưa? (Rất hay quên).
+- Check if `time.sleep` is nested within `async def`?
+- Check if `await` is called for every IO operation? (Easy to forget).
 
 ### Detect
-- Phát hiện việc dùng `await` lồng nhau quá nhiều trong vòng lặp → Flag: "Sử dụng asyncio.gather để song song hóa".
-- Phát hiện việc dùng Redis mà xóa cache sai cách → Flag: "Nguy cơ dữ liệu không đồng nhất".
+- Detect nested `await` too many times in a loop → Flag: "Use asyncio.gather to parallelize".
+- Detect using Redis and deleting cache incorrectly → Flag: "Risk of data inconsistency".
 
 ### Suggest
-- Gợi ý dùng `BackgroundTasks` cho các hành động không cần phản hồi kết quả cho người dùng ngay lập tức (Xóa file, Gửi log).
+- Suggest using `BackgroundTasks` for actions that don't need to return results to the user immediately (Delete files, Send logs).
 
 ## Common Bugs
 - **Bug**: `RuntimeError: Task <...> got Future <...> attached to a different loop`.
-  - **Fix**: Bạn đang chia sẻ session SQLAlchemy sai giữa các context. Kiểm tra `get_db`.
-- **Bug**: Redis chiếm quá nhiều RAM.
-  - **Fix**: Bạn chưa đặt TTL. Use `redis.setex(key, time, value)`.
+  - **Fix**: You are sharing SQLAlchemy session incorrectly between contexts. Check `get_db`.
+- **Bug**: Redis consumes too much RAM.
+  - **Fix**: You haven't set TTL. Use `redis.setex(key, time, value)`.
 
 ## Performance Notes
-- Sử dụng `uvicorn --workers N` để tận dụng đa nhân CPU.
-- Luôn kiểm tra N+1 queries ở DB (Skill `db_persistence`).
+- Use `uvicorn --workers N` to leverage multi-core CPUs.
+- Always check N+1 queries in DB (Skill `db_persistence`).
 
 ## Related Skills
-- `db_persistence`: Database tối ưu là nền tảng của hiệu năng.
-- `api_design`: Caching ở tầng Router.
+- `db_persistence`: Optimized Database is the foundation of performance.
+- `api_design`: Caching at the Router layer.

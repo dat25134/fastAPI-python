@@ -5,14 +5,14 @@ description: Standard for Ensuring Maintaining High Quality, Testing, and Loggin
 
 # Skill: Code Quality & Assurance
 **Domain**: Logging, Testing (Pytest), Code Review, Mypy, Formatting.
-**When to Use**: Khi cần viết Test, cấu hình Log cho Production, hoặc kiểm tra chất lượng code trước khi Commit.
+**When to Use**: When writing tests, configuring logs for Production, or verifying code quality before committing.
 
 ## Key Rules
-- **DO**: Luôn sử dụng `Pytest` và `Httpx.AsyncClient` cho integration tests.
-- **DO**: Luôn sử dụng `Structured JSON Logging` cho các môi trường quan trọng.
-- **DO**: Luôn đảm bảo `Type Hints` đầy đủ cho mọi hàm.
-- **DON'T**: Không bao giờ bỏ qua Unit Test cho các logic quan trọng của `Service`.
-- **DON'T**: Không bao giờ sử dụng `print()` thay thế cho `logging`.
+- **DO**: Always use `Pytest` and `Httpx.AsyncClient` for integration tests.
+- **DO**: Always use `Structured JSON Logging` for critical environments.
+- **DO**: Always ensure full `Type Hints` for every function.
+- **DON'T**: Never skip Unit Tests for critical `Service` logic.
+- **DON'T**: Never use `print()` as a replacement for `logging`.
 
 ## Code Examples
 
@@ -22,43 +22,43 @@ import logging
 import json
 
 def log_event(event: str, data: dict):
-    # Lợi: Dễ dàng phân tích bằng ELK/Graylog
+    # Benefit: Easy analysis with ELK/Graylog
     logging.info(json.dumps({"event": event, "data": data}))
 ```
 
 ### ❌ Anti-pattern (Using print)
 ```python
 def process_data(data):
-    # Lỗi: Không thể quản lý Log Level, không thể lưu vào file hiệu quả
+    # Error: Cannot manage Log Level, cannot save to files effectively
     print(f"Processing data: {data}") 
 ```
 
 ## AI Agent Instructions
 
 ### Generate
-Khi user yêu cầu Test hoặc Quality:
-1. Tạo thư mục `tests/` và file tương ứng.
-2. Viết Test cases bao hàm cả Success và Error scenarios.
-3. Cấu hình `logging.conf` hoặc middleware logging.
+When a user requests Testing or Quality:
+1. Create a `tests/` directory and corresponding file.
+2. Write Test cases covering both Success and Error scenarios.
+3. Configure `logging.conf` or logging middleware.
 
 ### Review
-- Check xem có `print()` trong code không?
-- Check xem các logic Service quan trọng có Tests chưa?
-- Check xem Type Hints có bị `Any` quá nhiều không?
+- Check if `print()` exists in the code?
+- Check if critical Service logic has Tests?
+- Check if Type Hints are used correctly (avoid `Any`)?
 
 ### Detect
-- Phát hiện các đoạn code quá phức tạp (Cyclomatic Complexity cao) → Flag: "Kiến nghị Refactor thành các hàm nhỏ hơn".
+- Detect overly complex code (High Cyclomatic Complexity) → Flag: "Recommend refactoring into smaller functions".
 
 ### Suggest
-- Gợi ý dùng `Faker` cho việc tạo dữ liệu Test mẫu.
+- Suggest using `Faker` for generating sample Test data.
 
 ## Common Bugs
-- **Bug**: `Test Database` bị lẫn với `Production Database`.
-  - **Fix**: Cấu hình `overrides` cho `get_db` trong `conftest.py`.
+- **Bug**: `Test Database` mixed with `Production Database`.
+  - **Fix**: Configure `overrides` for `get_db` in `conftest.py`.
 
 ## Performance Notes
-- Hạn chế Log quá nhiều mức `DEBUG` ở môi trường Production.
+- Minimize `DEBUG` level Logs in Production environments.
 
 ## Related Skills
-- `api_design`: Integration tests cho API.
-- `logic_service`: Unit tests cho Business Logic.
+- `api_design`: Integration tests for APIs.
+- `logic_service`: Unit tests for Business Logic.

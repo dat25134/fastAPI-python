@@ -5,14 +5,14 @@ description: Standard for Designing and Implementing Business Logic in the Servi
 
 # Skill: Logic & Service Layer
 **Domain**: Business Rules, Dependency Coordination, Service Injection.
-**When to Use**: Khi cần thực hiện các phép tính logic, điều phối nhiều repos, hoặc gọi API bên thứ 3.
+**When to Use**: When performing logic calculations, orchestrating multiple repos, or calling 3rd party APIs.
 
 ## Key Rules
-- **DO**: Luôn bọc các repository vào lớp `Service`.
-- **DO**: Luôn xử lý logic kiểm tra (Existence, Permission) ở tầng này.
-- **DO**: Chịu trách nhiệm thực hiện `db.commit()` và `db.rollback()`.
-- **DON'T**: Không bao giờ lộ các model SQLAlchemy sang Controller (Controller chỉ nhận schemas).
-- **DON'T**: Không bao giờ viết logic nghiệp vụ trong Repository.
+- **DO**: Always encapsulate repositories within a `Service` class.
+- **DO**: Always handle check logic (Existence, Permission) at this layer.
+- **DO**: Be responsible for `db.commit()` and `db.rollback()`.
+- **DON'T**: Never expose SQLAlchemy models to the Controller (Controller only receives schemas).
+- **DON'T**: Never write business logic in a Repository.
 
 ## Code Examples
 
@@ -32,7 +32,7 @@ class UserService:
 ```python
 @router.post("/")
 async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
-    # Lỗi: Logic kiểm tra người dùng tồn tại nằm ở Controller làm code khó bảo trì
+    # Error: User existence check logic in Controller makes code hard to maintain
     user = await db.execute(select(User).filter(User.email == user_in.email))
     if user.scalars().first():
          raise HTTPException(status_code=400, detail="User exists")
@@ -42,31 +42,31 @@ async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
 ## AI Agent Instructions
 
 ### Generate
-Khi user yêu cầu thêm logic nghiệp vụ mới:
-1. Tạo file trong `app/services/`.
-2. Định nghĩa hàm xử lý với các tham số là `AsyncSession` và `Schemas`.
-3. Đăng ký instance trong `app/services/__init__.py`.
+When a user requests a new business logic:
+1. Create a file in `app/services/`.
+2. Define the handling function with `AsyncSession` and `Schemas` as parameters.
+3. Register the instance in `app/services/__init__.py`.
 
 ### Review
-- Check xem tầng Service có thực hiện `db.commit()` chưa?
-- Check xem logic kiểm tra (như "User exists?") đã được thực hiện trước khi insert chưa?
+- Check if the Service layer performs `db.commit()`?
+- Check if check logic (e.g., "User exists?") is done before insertion?
 
 ### Detect
-- Phát hiện việc dùng `db.query()` trong Service → Flag: "Sử dụng Repository thay thế".
-- Phát hiện Controller gọi trực tiếp Repository → Flag: "Vi phạm Service Layering".
+- Detect `db.query()` in a Service → Flag: "Use Repository instead".
+- Detect Controller calling Repository directly → Flag: "Violation of Service Layering".
 
 ### Suggest
-- Gợi ý dùng `db.begin()` nếu logic bao gồm nhiều bước phức tạp cần Transaction tính nguyên tử cao.
+- Suggest using `db.begin()` if the logic includes complex steps requiring high transaction atomicity.
 
 ## Common Bugs
-- **Bug**: `IntegrityError` khi lưu dữ liệu.
-  - **Fix**: Bạn chưa kiểm tra dữ liệu đầu vào (Ví dụ: Email trùng).
-- **Bug**: Dữ liệu không được lưu.
-  - **Fix**: Kiểm tra xem `await db.commit()` đã được gọi chưa.
+- **Bug**: `IntegrityError` when saving data.
+  - **Fix**: You haven't checked input data (e.g., Duplicate email).
+- **Bug**: Data not saved.
+  - **Fix**: Check if `await db.commit()` has been called.
 
 ## Performance Notes
-- Hạn chế các vòng lặp gọi Repo trong Service. Nên tối ưu query Repo trả về một lần dữ liệu lớn.
+- Minimize repo calls within a Service loop. Optimize repo query to fetch large data at once.
 
 ## Related Skills
-- `db_persistence`: Cung cấp các hàm CRUD cơ bản.
-- `api_design`: Gọi Service để xử lý Request.
+- `db_persistence`: Provides basic CRUD functions.
+- `api_design`: Calls Service to handle Request.

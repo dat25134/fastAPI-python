@@ -5,14 +5,14 @@ description: Standard for Designing and Implementing Enterprise Security in Fast
 
 # Skill: Security & Authentication
 **Domain**: JWT, OAuth2, Password Hashing, Permissions.
-**When to Use**: Khi cần bảo vệ API, xác thực người dùng, hoặc cấp quyền truy cập.
+**When to Use**: When protecting the API, authenticating users, or granting access permissions.
 
 ## Key Rules
-- **DO**: Luôn sử dụng `Passlib (bcrypt)` để băm mật khẩu.
-- **DO**: Luôn trả về JWT với `exp` (Expiry) và `sub` (User ID).
-- **DO**: Luôn sử dụng `OAuth2PasswordBearer` để lấy token.
-- **DON'T**: Không bao giờ lưu mật khẩu ở dạng plain text.
-- **DON'T**: Không bao giờ lưu các thông tin nhạy cảm (như sđt, cccd) và `sub` của JWT.
+- **DO**: Always use `Passlib (bcrypt)` for password hashing.
+- **DO**: Always return JWT with `exp` (Expiry) and `sub` (User ID).
+- **DO**: Always use `OAuth2PasswordBearer` to retrieve the token.
+- **DON'T**: Never store passwords in plain text.
+- **DON'T**: Never store sensitive information (e.g., ID numbers) in the JWT `sub`.
 
 ## Code Examples
 
@@ -27,39 +27,39 @@ def get_password_hash(password: str):
 
 ### ❌ Anti-pattern (Saving Plain Text)
 ```python
-# Lỗi: Cực kỳ nguy hiểm, mọi người có thể đọc mật khẩu nếu DB bị lộ
+# Error: Extremely dangerous, anyone can read passwords if DB is leaked
 user = User(email="test@test.com", password="mypassword123") 
 ```
 
 ## AI Agent Instructions
 
 ### Generate
-Khi user yêu cầu thêm Security:
-1. Tạo `app/core/security.py` cho hashing & JWT.
-2. Tạo `app/schemas/token.py` cho login response.
-3. Tạo `app/api/deps.py` cho `get_current_user` dependency.
+When a user requests adding Security:
+1. Create `app/core/security.py` for hashing & JWT.
+2. Create `app/schemas/token.py` for login response.
+3. Create `app/api/deps.py` for `get_current_user` dependency.
 
 ### Review
-- Check xem mật khẩu đã được băm trước khi lưu chưa?
-- Check xem JWT có thời hạn hết hạn (`exp`) không?
-- Check xem các API nhạy cảm đã dùng `Depends(get_current_user)` chưa?
+- Check if password has been hashed before saving?
+- Check if JWT has an expiration time (`exp`)?
+- Check if sensitive APIs use `Depends(get_current_user)`?
 
 ### Detect
-- Phát hiện việc dùng thuật toán hashing cũ (như MD5) → Flag: "Bảo mật yếu, kiến nghị đổi sang bcrypt".
-- Phát hiện việc dùng `settings.SECRET_KEY` mà không có giá trị mặc định an toàn trong `.env` → Flag: "Rủi ro lộ bí mật".
+- Detect use of legacy hashing algorithms (like MD5) → Flag: "Weak security, recommend changing to bcrypt".
+- Detect using `settings.SECRET_KEY` without a secure default value in `.env` → Flag: "Risk of secret leakage".
 
 ### Suggest
-- Gợi ý dùng `OAuth2PasswordRequestForm` cho API login để tương thích tối đa với Swagger UI.
+- Suggest using `OAuth2PasswordRequestForm` for login API to ensure maximum compatibility with Swagger UI.
 
 ## Common Bugs
 - **Bug**: `JWT Decode Error`.
-  - **Fix**: Kiểm tra `SECRET_KEY` và `ALGORITHM` có khớp khi encode và decode không.
-- **Bug**: Token hết hạn quá nhanh.
-  - **Fix**: Check `ACCESS_TOKEN_EXPIRE_MINUTES` trong `.env`.
+  - **Fix**: Check if `SECRET_KEY` and `ALGORITHM` match during encode and decode.
+- **Bug**: Token expires too quickly.
+  - **Fix**: Check `ACCESS_TOKEN_EXPIRE_MINUTES` in `.env`.
 
 ## Performance Notes
-- Hashing là CPU-bound task, nên dùng `run_in_executor` nếu lưu lượng request cực lớn.
+- Hashing is a CPU-bound task, should use `run_in_executor` if request volume is extremely large.
 
 ## Related Skills
-- `api_design`: Cung cấp router cho login.
-- `logic_service`: Nơi thực hiện query xác thực thông tin đăng nhập.
+- `api_design`: Provides router for login.
+- `logic_service`: Performs queries to authenticate login information.

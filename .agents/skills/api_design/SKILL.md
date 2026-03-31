@@ -5,14 +5,14 @@ description: Standard for Designing and Implementing Enterprise-grade APIs in Fa
 
 # Skill: API Design
 **Domain**: Routing, Request/Response handling, Middlewares, Versioning.
-**When to Use**: Khi cần thêm Endpoint mới, thay đổi logic nhận dữ liệu từ request, hoặc xử lý các vấn đề xuyên suốt (cross-cutting concerns).
+**When to Use**: When adding a new endpoint, changing data input/output logic, or handling cross-cutting concerns.
 
 ## Key Rules
-- **DO**: Luôn sử dụng `/api/v[N]/...` cho routing.
-- **DO**: Luôn sử dụng `Standard Success/Error Schema` cho response.
-- **DO**: Luôn tách biệt Logic Router (Controller) và Logic Nghiệp vụ (Service).
-- **DON'T**: Không bao giờ viết SQL query trực tiếp trong router.
-- **DON'T**: Không bao giờ trả về SQLAlchemy Model trực tiếp cho client.
+- **DO**: Always use `/api/v[N]/...` for routing.
+- **DO**: Always use `Standard Success/Error Schema` for responses.
+- **DO**: Always separate Router logic (Controller) from Business Logic (Service).
+- **DON'T**: Never write SQL queries directly in the router.
+- **DON'T**: Never return SQLAlchemy models directly to the client.
 
 ## Code Examples
 
@@ -28,40 +28,40 @@ async def read_users(db: AsyncSession = Depends(get_db)):
 ```python
 @router.get("/")
 def get_users(db: Session = Depends(get_db)):
-    # Lỗi: Không có response_model, trả về trực tiếp SQLAlchemy object
+    # Error: No response_model, returning legacy SQLAlchemy object directly
     return db.query(UserModel).all() 
 ```
 
 ## AI Agent Instructions
 
 ### Generate
-Khi user yêu cầu tạo API mới:
-1. Tạo Router trong `api/v1/endpoints/`.
-2. Định nghĩa Request/Response Schema.
-3. Đăng ký Router trong `api/v1/api.py`.
+When a user requests a new API:
+1. Create Router in `api/v1/endpoints/`.
+2. Define Request/Response Schemas.
+3. Register Router in `api/v1/api.py`.
 
 ### Review
-- Check xem có `response_model` chưa?
-- Check xem có đang xử lý SQL trực tiếp không?
-- Check xem endpoint có nằm đúng version (`/v1`) không?
+- Check if `response_model` is present?
+- Check if SQL is being handled directly?
+- Check if the endpoint is in the correct version (`/v1`)?
 
 ### Detect
-- Phát hiện các hàm `async def` mà không có `await` → Flag: "Tiềm năng chặn Event Loop".
-- Phát hiện việc dùng `HTTPException` trực tiếp trong Repository → Flag: "Vi phạm Layering".
+- Detect `async def` without `await` → Flag: "Potential Event Loop blocking".
+- Detect `HTTPException` directly in a Repository → Flag: "Violation of Layering".
 
 ### Suggest
-- Khi thấy tham số query lặp lại nhiều lần → Gợi ý tạo `CommonQueryParams` dependency.
+- Suggest creating a `CommonQueryParams` dependency for repeated query parameters.
 
 ## Common Bugs
-- **Bug**: Quên import router vào `api_router`.
+- **Bug**: Forgot to import the router into `api_router`.
   - **Fix**: Check `app/api/v1/api.py`.
-- **Bug**: `Validation Error` (Pydantic) không khớp với frontend.
-  - **Fix**: Check lại Schema field types (ví dụ: `int` vs `string`).
+- **Bug**: `Validation Error` (Pydantic) mismatch with frontend.
+  - **Fix**: Re-check Schema field types (e.g., `int` vs `string`).
 
 ## Performance Notes
-- Sử dụng `APIRouter` với `tags` để Swagger UI được tổ chức tốt hơn.
-- Trả về danh sách lớn nên có `skip` và `limit` (Pagination).
+- Use `APIRouter` with `tags` for better Swagger UI organization.
+- Use `skip` and `limit` (Pagination) for large lists.
 
 ## Related Skills
-- `db_persistence`: Cần repo để lấy dữ liệu.
-- `logic_service`: Nơi Router ủy thác công việc.
+- `db_persistence`: Provides data to the Router.
+- `logic_service`: The layer the Router delegates work to.
