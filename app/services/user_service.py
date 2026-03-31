@@ -3,22 +3,16 @@ from fastapi import HTTPException
 from app.repositories import user_repository
 from app.schemas.user import UserCreate
 from app.models.user import User
-from typing import List
+from app.core.security import get_password_hash, verify_password
+from typing import List, Optional
 
 class UserService:
     async def get_users(self, db: AsyncSession, skip: int = 0, limit: int = 100) -> List[User]:
-        """
-        Xử lý logic lấy danh sách người dùng.
-        """
         from sqlalchemy.future import select
         result = await db.execute(select(User).offset(skip).limit(limit))
         return result.scalars().all()
 
     async def create_user(self, db: AsyncSession, user_in: UserCreate) -> User:
-        """
-        Xử lý logic nghiệp vụ tạo người dùng (Business Logic).
-        """
-        # Kiểm tra user tồn tại
         user = await user_repository.get_by_email(db, email=user_in.email)
         if user:
             raise HTTPException(
@@ -26,7 +20,24 @@ class UserService:
                 detail="The user with this username already exists in the system.",
             )
         
-        # Gọi Repository để tạo mới
-        return await user_repository.create(db, obj_in=user_in)
+        # Hashing password before saving
+        db_obj = User(
+            email=user_in.email,
+            hashed_password=get_password_hash(user_in.password),
+            full_name=user_in.full_name,
+            is_superuser=user_in.is_superuser,
+        )
+        db.add(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
+        return db_obj
+
+    async def authenticate(self, db: AsyncSession, email: str, password: str) -> Optional[User]:
+        user = await user_repository.get_by_email(db, email=email)
+        if not user:
+            return None
+        if not verify_password(password, user.hashed_password):
+            return None
+        return user
 
 user_service = UserService()
